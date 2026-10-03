@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -55,6 +56,7 @@ class ProfilesNavigationTest {
         rule.onNodeWithText(first.name).assertExists()
         rule.onNodeWithText(other.name).assertDoesNotExist()
 
+        closeSoftKeyboard() // with the keyboard open, Android's first Back only closes it
         pressBack()
         rule.onNodeWithText("Choose test").assertExists()
     }
