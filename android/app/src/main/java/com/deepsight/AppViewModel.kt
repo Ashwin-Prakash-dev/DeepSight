@@ -424,6 +424,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // History
 
+    /** Deletes a record the queue is done with: the case row (its fields cascade) and then its images on disk. */
+    fun deleteRecord(caseId: String) {
+        viewModelScope.launch {
+            if (dao.deleteRecord(caseId) == 0) return@launch // queued or running, or already gone
+            withContext(Dispatchers.IO) { store.delete(caseId) }
+            if (_saved.value?.case?.caseId == caseId) _saved.value = null
+        }
+    }
+
     /** A signed case opens read-only; a finished, unsigned one opens for review and sign-off; one still queued doesn't open. */
     fun openSaved(caseId: String) {
         viewModelScope.launch {

@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -38,6 +39,26 @@ class CaseDaoTest {
         dao.upsert(case, listOf(field))
         assertEquals(listOf(case), dao.history().first())
         assertEquals(listOf(field), dao.fields("c1"))
+        db.close()
+    }
+
+    /** History's delete: a finished record goes with its fields; one the queue still owns stays. */
+    @Test
+    fun deleteRecordRemovesAFinishedCaseAndItsFieldsButNotAQueuedOrRunningOne() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(InstrumentationRegistry.getInstrumentation().targetContext, CaseDb::class.java).build()
+        val dao = db.dao()
+        dao.upsert(CaseEntity("signed", "malaria_thin", 1L, status = CaseStatus.SIGNED), listOf(FieldEntity("f1", "signed", null, "{}")))
+        dao.enqueue(CaseEntity("queued", "malaria_thin", 2L))
+        dao.enqueue(CaseEntity("running", "malaria_thin", 3L))
+        dao.setStatus("running", CaseStatus.RUNNING)
+
+        assertEquals(1, dao.deleteRecord("signed"))
+        assertNull(dao.caseById("signed"))
+        assertEquals(emptyList<FieldEntity>(), dao.fields("signed"))
+
+        assertEquals(0, dao.deleteRecord("queued"))
+        assertEquals(0, dao.deleteRecord("running"))
+        assertEquals(listOf("running", "queued"), dao.history().first().map { it.caseId })
         db.close()
     }
 

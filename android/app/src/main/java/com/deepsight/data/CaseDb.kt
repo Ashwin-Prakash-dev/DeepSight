@@ -149,6 +149,13 @@ interface CaseDao {
     /** For tests that seed the app's own database; its fields go with it. */
     @Query("DELETE FROM cases WHERE case_id = :caseId")
     suspend fun deleteCase(caseId: String)
+
+    /**
+     * History's delete: the case and (by cascade) its fields, unless the queue still owns it. The status check is in the
+     * same statement, so a case can't start running between check and delete. Returns the rows deleted (0 or 1).
+     */
+    @Query("DELETE FROM cases WHERE case_id = :caseId AND status NOT IN ('QUEUED', 'RUNNING')")
+    suspend fun deleteRecord(caseId: String): Int
 }
 
 @Dao
