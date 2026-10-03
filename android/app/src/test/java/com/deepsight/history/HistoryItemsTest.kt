@@ -30,6 +30,16 @@ class HistoryItemsTest {
         assertNull(items[1].level)
     }
 
+    /** A queued or running case is still the queue's; finished, failed and signed-off records can be deleted. */
+    @Test
+    fun onlyRecordsTheQueueIsDoneWithCanBeDeleted() {
+        val deletable = CaseStatus.entries.associateWith { historyItemsOf(listOf(case(null, it)), emptyMap()).single().deletable }
+        assertEquals(
+            mapOf(CaseStatus.QUEUED to false, CaseStatus.RUNNING to false, CaseStatus.DONE to true, CaseStatus.FAILED to true, CaseStatus.SIGNED to true),
+            deletable,
+        )
+    }
+
     @Test
     fun aFailedCaseCarriesItsError() {
         val item = historyItemsOf(listOf(case(null, CaseStatus.FAILED, error = "out of memory")), emptyMap()).single()

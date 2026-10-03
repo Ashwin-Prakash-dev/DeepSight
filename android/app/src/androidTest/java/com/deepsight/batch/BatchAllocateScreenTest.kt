@@ -1,5 +1,6 @@
 package com.deepsight.batch
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -135,8 +136,22 @@ class BatchAllocateScreenTest {
     }
 
     @Test
-    fun saysThatTheRouterIsAPlaceholder() {
+    fun saysTheRouterIsTrainedButEveryImageMustBeChecked() {
         show(draftOf("m1.jpg"))
-        rule.onAllNodesWithText("placeholder", substring = true)[0].assertExists()
+        rule.onNodeWithText("Router: trained").assertExists()
+        rule.onNodeWithText("check every one", substring = true).assertExists()
+        rule.onAllNodesWithText("placeholder", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun sortingShowsProgressBeforeTheImagesArrive() {
+        rule.setContent {
+            DeepSightTheme {
+                BatchAllocateScreen(BatchDraft(), packs, emptyList(), busy = false, error = null, onReassign = { _, _ -> }, onRemove = {},
+                    onPatient = {}, onVerified = {}, onSubmit = {}, onClear = {}, sorting = 3 to 10)
+            }
+        }
+        rule.onNodeWithText("Sorting image 3 of 10…").assertExists()
+        rule.onNodeWithText("No images selected").assertDoesNotExist()
     }
 }

@@ -63,7 +63,7 @@ fun BatchScreen(
                         Icon(DeepSightIcons.Batch, contentDescription = null, Modifier.padding(10.dp).size(28.dp))
                     }
                     Spacer(Modifier.width(12.dp))
-                    StatusPill("Router: placeholder", tone = PillTone.CAUTION)
+                    StatusPill("Router: trained", tone = PillTone.CAUTION)
                 }
                 Text("Screen many fields at once", style = MaterialTheme.typography.headlineSmall)
                 Text(

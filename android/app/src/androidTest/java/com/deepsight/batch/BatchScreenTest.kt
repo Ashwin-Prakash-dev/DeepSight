@@ -1,5 +1,6 @@
 package com.deepsight.batch
 
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -30,6 +31,13 @@ class BatchScreenTest {
         rule.onNodeWithText("Ben Sample · P-0000-0002").performScrollTo().performClick() // still queued: nothing to open
         rule.onNodeWithText("Cara Test · P-0000-0003").performScrollTo().performClick()
         assertEquals(listOf("c3"), opened)
+    }
+
+    @Test
+    fun uploadIsAvailableNotComingSoon() {
+        rule.setContent { DeepSightTheme { BatchScreen(emptyList(), onOpen = {}, onUseSingle = {}) } }
+        rule.onNodeWithText("Select images").assertIsEnabled()
+        rule.onNodeWithText("Coming soon").assertDoesNotExist()
     }
 
     @Test

@@ -29,12 +29,11 @@ import com.deepsight.profiles.Patient
 import com.deepsight.profiles.PatientProfile
 import com.deepsight.profiles.Sex
 import com.deepsight.profiles.profilesOf
-import com.deepsight.profile.ProfileRole
-import com.deepsight.profile.Profiles
 import com.deepsight.result.SignOff
 import com.deepsight.result.sign
 import com.deepsight.result.signOff
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +52,7 @@ import kotlinx.coroutines.withContext
 sealed interface Route {
     data object Batch : Route
     data object BatchAllocate : Route
+    /** The Profile tab: every patient profile, searchable. */
     data object Profile : Route
     data object Home : Route
     data object Case : Route
@@ -60,7 +60,6 @@ sealed interface Route {
     data object History : Route
     data class SavedCase(val caseId: String) : Route
     data object About : Route
-    data object Profiles : Route
     /** Before a case: choose the patient the batch belongs to, or add one. */
     data object PickPatient : Route
     /** One patient and every test they've had. */
@@ -149,9 +148,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _nav = MutableStateFlow(NavState())
     val nav: StateFlow<NavState> = _nav.asStateFlow()
 
-    private val _profiles = MutableStateFlow(Profiles())
-    val profiles: StateFlow<Profiles> = _profiles.asStateFlow()
-
     private val _packs = MutableStateFlow<List<PackItem>?>(null)
     val packs: StateFlow<List<PackItem>?> = _packs.asStateFlow()
 
@@ -175,7 +171,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun manifests(packs: List<PackItem>?) = packs.orEmpty().associate { it.manifest.id to it.manifest }
 
-    /** Patient profiles (Room) for the Profiles list and the pick before a case; not the phone users in [profiles]. */
+    /** Patient profiles (Room) for the Profile tab and the pick before a case. */
     val patients: StateFlow<List<PatientProfile>> = combine(patientDao.all(), dao.patientCases()) { patients, cases ->
         profilesOf(patients, cases, System.currentTimeMillis())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -357,12 +353,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _nav.update { it.reset(Tab.SINGLE, listOf(Route.Home, Route.History)) }
     }
 
-    // Profiles: the phone's users (in memory until they are saved; see Profiles). Patients are in Room.
-
-    fun addProfile(name: String, role: ProfileRole) = _profiles.update { it.add(name, role) }
-
-    fun selectProfile(id: String) = _profiles.update { it.select(id) }
-
     // History
 
     /** Deletes finished cases (and their images) chosen on the History screen. Busy ones are skipped; the lists update from Room. */
@@ -370,6 +360,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (caseIds.isEmpty()) return
         viewModelScope.launch {
             val removed = withContext(Dispatchers.IO) { dao.deleteFinished(caseIds.toList()).also { ids -> ids.forEach(store::delete) } }
+            if (_saved.value?.case?.caseId in removed) _saved.value = null
             Log.i(TAG, "deleted ${removed.size} of ${caseIds.size} selected cases")
         }
     }

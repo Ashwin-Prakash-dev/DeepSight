@@ -14,6 +14,7 @@ import com.deepsight.data.CaseDb
 import com.deepsight.engine.contract.PackManifest
 import com.deepsight.profiles.Patient
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The batch being prepared on the Batch tab: images picked from the gallery, allocated to modules by the [router], checked
+ * The batch being prepared on the Batch tab: images picked from the gallery, allocated to modules by the trained router, checked
  * and changed by a person, then submitted to the queue as one case per module. Holds no analysis state: the queue does.
  */
 class BatchViewModel(app: Application) : AndroidViewModel(app) {
@@ -34,8 +35,12 @@ class BatchViewModel(app: Application) : AndroidViewModel(app) {
     private val store = CaseStore(app.filesDir.resolve("cases"))
     private val staging = File(app.filesDir, "batch-staging")
 
-    /** PLACEHOLDER router: random. Replace with the trained router (#22) when it exists. */
-    var router: FieldRouter = RandomFieldRouter()
+    /** Replaces the trained router (tests). Null: the trained router in `ml/router`, run by [CaseRunner.route]. */
+    var router: FieldRouter? = null
+
+    private val _sorting = MutableStateFlow<Pair<Int, Int>?>(null)
+    /** (done, total) while the router sorts newly added images; null otherwise. */
+    val sorting: StateFlow<Pair<Int, Int>?> = _sorting.asStateFlow()
 
     private val _draft = MutableStateFlow(BatchDraft())
     val draft: StateFlow<BatchDraft> = _draft.asStateFlow()
@@ -77,7 +82,25 @@ class BatchViewModel(app: Application) : AndroidViewModel(app) {
             if (files.size < uris.size) _error.value = "${uris.size - files.size} image(s) could not be read and were skipped."
             // The packs load once at start-up; wait for them so the router has modules to choose from.
             val ids = packs.value.map { it.id }.ifEmpty { runner.packs().filter { DemoPacks.isReady(it.id) }.also { _packs.value = it }.map { it.id } }
-            _draft.update { it.add(files, router, ids) }
+            val chosen = router ?: trainedRouter(files)
+            _draft.update { it.add(files, chosen, ids) }
+        }
+    }
+
+    /** Runs the trained router on [files] (off the main thread, with progress). If it can't run, nothing is suggested. */
+    private suspend fun trainedRouter(files: List<File>): FieldRouter {
+        if (files.isEmpty()) return NoFieldRouter
+        _sorting.value = 0 to files.size
+        return try {
+            fieldRouterOf(runner.route(files) { done, total -> _sorting.value = done to total })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) { // OutOfMemoryError too: the person can still allocate by hand
+            Log.e(TAG, "router failed", e)
+            _error.value = "The router could not sort these images (${e.message ?: e.javaClass.simpleName}). Choose a module for each one."
+            NoFieldRouter
+        } finally {
+            _sorting.value = null
         }
     }
 

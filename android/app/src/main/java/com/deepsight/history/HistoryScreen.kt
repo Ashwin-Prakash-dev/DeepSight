@@ -25,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,24 +60,26 @@ import java.util.Date
 private val SelectionSaver = Saver<Set<String>, ArrayList<String>>(save = { ArrayList(it) }, restore = { it.toSet() })
 
 /**
- * Every case, newest first. Press and hold a finished case to select it, tap to select or unselect more, then delete the
- * selection after a confirmation ([onDelete]). Cases the queue is still working on can't be selected.
+ * Every case, newest first. With [onDelete], finished cases can be deleted after a confirmation: one at a time with its
+ * trash icon, or several by pressing and holding one to select it and tapping more. Cases the queue is still working on
+ * offer neither, because the queue writes its result into them when it finishes.
  */
 @Composable
-fun HistoryScreen(items: List<HistoryItem>, onOpen: (String) -> Unit, modifier: Modifier = Modifier, onDelete: (Set<String>) -> Unit = {}) {
+fun HistoryScreen(items: List<HistoryItem>, onOpen: (String) -> Unit, modifier: Modifier = Modifier, onDelete: ((Set<String>) -> Unit)? = null) {
     if (items.isEmpty()) {
         EmptyState(DeepSightIcons.History, "No signed-off cases yet", "Cases appear here after a clinician signs them off.", modifier.padding(16.dp))
         return
     }
     var selected by rememberSaveable(stateSaver = SelectionSaver) { mutableStateOf(emptySet<String>()) }
-    var confirming by remember { mutableStateOf(false) }
+    var confirmingSelection by remember { mutableStateOf(false) }
+    var confirmingOne by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(items) { selected = prunedSelection(selected, items) } // deleted or newly busy cases drop out
-    val selecting = selected.isNotEmpty()
+    val selecting = onDelete != null && selected.isNotEmpty()
 
     Column(modifier.fillMaxSize()) {
         if (selecting) {
-            SelectionBar(selected.size, onCancel = { selected = emptySet() }, onDelete = { confirming = true })
-        } else if (items.any { canDelete(it.status) }) {
+            SelectionBar(selected.size, onCancel = { selected = emptySet() }, onDelete = { confirmingSelection = true })
+        } else if (onDelete != null && items.any { canDelete(it.status) }) {
             Text(
                 "Press and hold a case to select it for deletion.",
                 style = MaterialTheme.typography.bodySmall,
@@ -91,25 +94,38 @@ fun HistoryScreen(items: List<HistoryItem>, onOpen: (String) -> Unit, modifier: 
                     onOpen = { id -> if (selecting) { if (canDelete(item.status)) selected = toggled(selected, id) } else onOpen(id) },
                     selecting = selecting,
                     selected = item.caseId in selected,
-                    onLongClick = if (canDelete(item.status)) ({ selected = toggled(selected, item.caseId) }) else null,
+                    onLongClick = if (onDelete != null && canDelete(item.status)) ({ selected = toggled(selected, item.caseId) }) else null,
+                    onDelete = if (onDelete != null && !selecting) ({ id: String -> confirmingOne = id }) else null,
                 )
             }
         }
     }
 
-    if (confirming) {
+    if (onDelete != null && confirmingSelection) {
         val chosen = items.filter { it.caseId in selected }
         AlertDialog(
-            onDismissRequest = { confirming = false },
+            onDismissRequest = { confirmingSelection = false },
             title = { Text(deleteTitle(chosen.size)) },
             text = { Text(deleteMessage(chosen)) },
             confirmButton = {
                 Button(
-                    onClick = { onDelete(chosen.map { it.caseId }.toSet()); selected = emptySet(); confirming = false },
+                    onClick = { onDelete(chosen.map { it.caseId }.toSet()); selected = emptySet(); confirmingSelection = false },
                     modifier = Modifier.testTag("confirm-delete"),
                 ) { Text("Delete") }
             },
-            dismissButton = { TextButton(onClick = { confirming = false }) { Text("Keep") } },
+            dismissButton = { TextButton(onClick = { confirmingSelection = false }) { Text("Keep") } },
+        )
+    }
+
+    val one = items.firstOrNull { it.caseId == confirmingOne }
+    if (onDelete != null && one != null) {
+        AlertDialog(
+            onDismissRequest = { confirmingOne = null },
+            icon = { Icon(DeepSightIcons.Delete, contentDescription = null) },
+            title = { Text("Delete this record?") },
+            text = { Text("${one.packName}: the result, sign-off, report and images are removed from this phone. This can't be undone.") },
+            confirmButton = { TextButton(onClick = { confirmingOne = null; onDelete(setOf(one.caseId)) }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { confirmingOne = null }) { Text("Cancel") } },
         )
     }
 }
@@ -143,6 +159,7 @@ fun HistoryRow(
     selecting: Boolean = false,
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    onDelete: ((String) -> Unit)? = null,
 ) {
     val colors = LocalTriageColors.current
     val dot = when (item.level?.let { triageStyle(it).tone }) {
@@ -179,6 +196,9 @@ fun HistoryRow(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (!selecting && onDelete != null && item.deletable) {
+                IconButton(onClick = { onDelete(item.caseId) }) { Icon(DeepSightIcons.Delete, contentDescription = "Delete record") }
             }
             if (!selecting) Icon(DeepSightIcons.Forward, contentDescription = null)
         }

@@ -6,6 +6,9 @@ import com.deepsight.engine.contract.Contracts
 import com.deepsight.engine.contract.PackManifest
 import com.deepsight.engine.contract.TriageLevel
 
+/** Whether History may delete this record: not while it is queued or running, because the queue still owns it. */
+val HistoryItem.deletable: Boolean get() = canDelete(status)
+
 /** History and patient-profile rows. [manifests] by pack id; a pack not loaded (yet) shows its id. The level is null until triage has run. */
 fun historyItemsOf(rows: List<CaseEntity>, manifests: Map<String, PackManifest>): List<HistoryItem> = rows.map { row ->
     val manifest = manifests[row.packId]

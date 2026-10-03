@@ -38,10 +38,8 @@ fun HomeScreen(
     packs: List<PackItem>?,
     aiStatus: AiStatus,
     historyCount: Int,
-    profileCount: Int,
     onPick: (PackManifest) -> Unit,
     onHistory: () -> Unit,
-    onProfiles: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -59,7 +57,6 @@ fun HomeScreen(
         }
         packs?.forEach { PackCard(it, onPick) }
         SectionHeader("Records")
-        ProfilesCard(profileCount, onProfiles)
         HistoryCard(historyCount, onHistory)
     }
 }
@@ -107,18 +104,6 @@ private fun PackCard(item: PackItem, onPick: (PackManifest) -> Unit) {
             supporting = if (ready) "Ready · pack ${item.manifest.version}" else "Not yet validated on a phone",
             trailing = { if (ready) Icon(DeepSightIcons.Forward, contentDescription = null) else StatusPill("Not validated", tone = PillTone.NEUTRAL) },
             dim = !ready,
-        )
-    }
-}
-
-@Composable
-private fun ProfilesCard(count: Int, onProfiles: () -> Unit) {
-    OutlinedCard(onClick = onProfiles, modifier = Modifier.fillMaxWidth()) {
-        ListRow(
-            icon = DeepSightIcons.Person,
-            title = "Patients",
-            supporting = "$count patients · search by name or ID",
-            trailing = { Icon(DeepSightIcons.Forward, contentDescription = null) },
         )
     }
 }

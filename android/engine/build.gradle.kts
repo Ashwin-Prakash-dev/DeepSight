@@ -32,9 +32,11 @@ android {
 
 // Every pack's manifest, model and golden cases live in ml/packs; PackGoldenTest reads them from the test APK's
 // assets under packs/<id>/ (the prefix keeps them out of the asset root that PackLoaderDeviceTest scans).
+// The trained router and its golden cases (ml/router) go under router/ for RouterModelDeviceTest.
 val stageGoldenPacks by tasks.registering(Sync::class) {
-    from(rootDir.resolve("../ml/packs"))
-    into(layout.buildDirectory.dir("golden-assets/packs"))
+    from(rootDir.resolve("../ml/packs")) { into("packs") }
+    from(rootDir.resolve("../ml/router")) { into("router") }
+    into(layout.buildDirectory.dir("golden-assets"))
 }
 androidComponents {
     onVariants { variant ->

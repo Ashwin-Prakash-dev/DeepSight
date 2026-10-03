@@ -27,6 +27,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -81,7 +82,15 @@ fun BatchAllocateScreen(
     onSubmit: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
+    sorting: Pair<Int, Int>? = null,
 ) {
+    if (sorting != null && draft.images.isEmpty()) {
+        Column(modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Sorting image ${sorting.first} of ${sorting.second}…", style = MaterialTheme.typography.titleMedium)
+            LinearProgressIndicator(progress = { sorting.first.toFloat() / sorting.second.coerceAtLeast(1) }, modifier = Modifier.fillMaxWidth())
+        }
+        return
+    }
     if (draft.images.isEmpty()) {
         EmptyState(DeepSightIcons.Gallery, "No images selected", "Go back and choose the images to screen.", modifier.padding(16.dp))
         return
@@ -126,10 +135,10 @@ private fun IntroCard(draft: BatchDraft) = ElevatedCard(
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Check the allocation", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            StatusPill("Router: placeholder", tone = PillTone.CAUTION)
+            StatusPill("Router: trained", tone = PillTone.CAUTION)
         }
         Text(
-            "${imagesText(draft.images.size)} added. The router suggests a module for each image, but for now it is a placeholder that picks at random, " +
+            "${imagesText(draft.images.size)} added. The router suggests a module for each image. It has not been checked on phone-camera photos, " +
                 "so check every one. You can move an image to another module.",
             style = MaterialTheme.typography.bodyMedium,
         )

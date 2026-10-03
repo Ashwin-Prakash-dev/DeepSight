@@ -2,11 +2,10 @@ package com.deepsight.profiles
 
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.deepsight.MainActivity
@@ -19,7 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Home → Patients → search → back, in the real activity, on patients stored in the phone's own database. */
+/** Profile tab → patients → search → back, in the real activity, on patients stored in the phone's own database. */
 @RunWith(AndroidJUnit4::class)
 class ProfilesNavigationTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
@@ -43,27 +42,27 @@ class ProfilesNavigationTest {
         seeded.forEach { patients.delete(it.uid) }
     }
 
+    /** Patient profiles live on the Profile tab only; Home (Single) doesn't list them. */
     @Test
-    fun profilesAreReachableFromHomeAndSearchable() {
+    fun profilesLiveOnTheProfileTabAndAreSearchable() {
         val (first, other) = seeded
-        rule.waitUntil(10_000) { rule.onAllNodes(hasText("Patients")).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithText("Patients").performScrollTo().performClick()
-        rule.onNodeWithText("Patients").assertExists() // the screen title; the Profile tab is the phone's users
+        rule.onNodeWithText("Choose test").assertExists()
+        rule.onNodeWithText("Patients").assertDoesNotExist()
 
+        openProfileTab()
         rule.onNodeWithText("Screening aid. A clinician decides.").assertExists()
         rule.onNodeWithText("Search by name or ID").performTextInput(first.uid) // the phone may hold other patients
         rule.onNodeWithText(first.name).assertExists()
         rule.onNodeWithText(other.name).assertDoesNotExist()
 
-        rule.onNodeWithContentDescription("Back").performClick()
+        pressBack()
         rule.onNodeWithText("Choose test").assertExists()
     }
 
     @Test
     fun aPatientOpensWithTheirTestsAndItsStatus() {
         val (first, other) = seeded
-        rule.waitUntil(10_000) { rule.onAllNodes(hasText("Patients")).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithText("Patients").performScrollTo().performClick()
+        openProfileTab()
         rule.onNodeWithText("Search by name or ID").performTextInput(first.uid.replace("-", "").drop(1)) // typed off the slip without dashes
         rule.onNodeWithText(other.name).assertDoesNotExist()
         rule.onNodeWithText(first.name).performClick()
@@ -72,5 +71,11 @@ class ProfilesNavigationTest {
         rule.onNodeWithText("Patient").assertExists() // the screen title
         rule.onNodeWithText(first.uid, substring = true).assertExists()
         rule.onNodeWithText("Analysis failed").assertExists()
+    }
+
+    /** The bottom bar's Profile tab, once Room has delivered the seeded patients to its list. */
+    private fun openProfileTab() {
+        rule.onNodeWithText("Profile").performClick()
+        rule.waitUntil(10_000) { rule.onAllNodes(hasText(seeded[0].name)).fetchSemanticsNodes().isNotEmpty() }
     }
 }

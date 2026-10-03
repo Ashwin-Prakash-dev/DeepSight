@@ -163,6 +163,13 @@ interface CaseDao {
     @Transaction
     suspend fun deleteFinished(ids: List<String>): List<String> =
         ids.chunked(500).flatMap { chunk -> finishedAmong(chunk).also { if (it.isNotEmpty()) deleteByIds(it) } }
+
+    /**
+     * History's delete: the case and (by cascade) its fields, unless the queue still owns it. The status check is in the
+     * same statement, so a case can't start running between check and delete. Returns the rows deleted (0 or 1).
+     */
+    @Query("DELETE FROM cases WHERE case_id = :caseId AND status NOT IN ('QUEUED', 'RUNNING')")
+    suspend fun deleteRecord(caseId: String): Int
 }
 
 @Dao
