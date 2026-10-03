@@ -14,6 +14,8 @@ import com.deepsight.ai.ReportWriter
 import com.deepsight.capture.CaseStore
 import com.deepsight.capture.FieldImage
 import com.deepsight.batch.BatchItem
+import com.deepsight.batch.BatchUpload
+import com.deepsight.batch.UploadUiState
 import com.deepsight.batch.batchesOf
 import com.deepsight.data.CaseDb
 import com.deepsight.data.CaseStatus
@@ -29,12 +31,11 @@ import com.deepsight.profiles.Patient
 import com.deepsight.profiles.PatientProfile
 import com.deepsight.profiles.Sex
 import com.deepsight.profiles.profilesOf
-import com.deepsight.profile.ProfileRole
-import com.deepsight.profile.Profiles
 import com.deepsight.result.SignOff
 import com.deepsight.result.sign
 import com.deepsight.result.signOff
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +53,7 @@ import kotlinx.coroutines.withContext
 /** Where the user is. The back stacks live in [AppViewModel] ([NavState]), so they survive rotation. */
 sealed interface Route {
     data object Batch : Route
+    /** The Profile tab: every patient profile, searchable. */
     data object Profile : Route
     data object Home : Route
     data object Case : Route
@@ -59,7 +61,6 @@ sealed interface Route {
     data object History : Route
     data class SavedCase(val caseId: String) : Route
     data object About : Route
-    data object Profiles : Route
     /** Before a case: choose the patient the batch belongs to, or add one. */
     data object PickPatient : Route
     /** One patient and every test they've had. */
@@ -145,9 +146,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _nav = MutableStateFlow(NavState())
     val nav: StateFlow<NavState> = _nav.asStateFlow()
 
-    private val _profiles = MutableStateFlow(Profiles())
-    val profiles: StateFlow<Profiles> = _profiles.asStateFlow()
-
     private val _packs = MutableStateFlow<List<PackItem>?>(null)
     val packs: StateFlow<List<PackItem>?> = _packs.asStateFlow()
 
@@ -171,7 +169,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun manifests(packs: List<PackItem>?) = packs.orEmpty().associate { it.manifest.id to it.manifest }
 
-    /** Patient profiles (Room) for the Profiles list and the pick before a case; not the phone users in [profiles]. */
+    /** Patient profiles (Room) for the Profile tab and the pick before a case. */
     val patients: StateFlow<List<PatientProfile>> = combine(patientDao.all(), dao.patientCases()) { patients, cases ->
         profilesOf(patients, cases, System.currentTimeMillis())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -182,6 +180,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _patientError = MutableStateFlow<String?>(null)
     val patientError: StateFlow<String?> = _patientError.asStateFlow()
+
+    // Batch upload: the router proposes a test per image; the user reviews, then each test's images are one batch.
+    private val uploads = BatchUpload(
+        uploads = CaseStore(app.filesDir.resolve("uploads")),
+        cases = store,
+        route = { files, progress -> runner.route(files, progress) },
+        submit = { patient, pack, caseId -> queue.submit(patient, pack, caseId, SubmissionSource.BATCH) },
+    )
+    private var uploadId: String? = null
+    private val _upload = MutableStateFlow<UploadUiState>(UploadUiState.Idle)
+    val upload: StateFlow<UploadUiState> = _upload.asStateFlow()
+    private val _uploadPatient = MutableStateFlow<String?>(null)
+    val uploadPatient: StateFlow<String?> = _uploadPatient.asStateFlow()
 
     /** The test chosen on Home, waiting for its patient. */
     private var pendingPack: PackManifest? = null
@@ -295,6 +306,67 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Batch upload
+
+    /** Copies the picked images unchanged, then the router proposes a test for each; the result waits for review. */
+    fun uploadImages(uris: List<Uri>) {
+        if (uris.isEmpty() || _upload.value is UploadUiState.Copying || _upload.value is UploadUiState.Sorting) return
+        uploadId?.let(uploads::discard)
+        val id = "upload-${System.currentTimeMillis()}".also { uploadId = it }
+        _upload.value = UploadUiState.Copying(uris.size)
+        viewModelScope.launch {
+            try {
+                val resolver = getApplication<Application>().contentResolver
+                withContext(Dispatchers.IO) {
+                    uris.forEach { uri ->
+                        val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(resolver.getType(uri)) ?: "jpg"
+                        uploads.stage(id, listOf((resolver.openInputStream(uri) ?: error("could not read $uri")) to ext))
+                    }
+                }
+                val packs = _packs.first { it != null }.orEmpty().filter { it.ready }.associate { it.manifest.id to it.manifest.displayName }
+                val plan = uploads.sort(id, packs) { done, total -> _upload.value = UploadUiState.Sorting(done, total) }
+                if (uploadId == id) _upload.value = UploadUiState.Review(plan)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) { // OutOfMemoryError too: the tab must recover
+                Log.e(TAG, "upload $id failed", e)
+                uploads.discard(id)
+                if (uploadId == id) {
+                    uploadId = null
+                    _upload.value = UploadUiState.Failed("Could not sort the images: ${e.message ?: e.javaClass.simpleName}")
+                }
+            }
+        }
+    }
+
+    fun chooseUploadPatient(uid: String?) {
+        _uploadPatient.value = uid
+    }
+
+    /** Queues one batch per proposed test; they then show in the Batch list like any batch. */
+    fun submitUpload() {
+        val plan = (_upload.value as? UploadUiState.Review)?.plan ?: return
+        val id = uploadId ?: return
+        uploadId = null
+        _upload.value = UploadUiState.Idle
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { uploads.submit(id, plan, _uploadPatient.value) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "upload $id submit failed", e)
+                _upload.value = UploadUiState.Failed("Could not queue the batches: ${e.message}")
+            }
+        }
+    }
+
+    fun discardUpload() {
+        uploadId?.let(uploads::discard)
+        uploadId = null
+        _upload.value = UploadUiState.Idle
+    }
+
     /** A finished batch from the Batch tab opens for sign-off on Single, like one from History. */
     fun openBatch(caseId: String) {
         viewModelScope.launch {
@@ -349,12 +421,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { dao.sign(signOff, report?.text, report?.source?.name?.lowercase()) }
         _nav.update { it.reset(Tab.SINGLE, listOf(Route.Home, Route.History)) }
     }
-
-    // Profiles: the phone's users (in memory until they are saved; see Profiles). Patients are in Room.
-
-    fun addProfile(name: String, role: ProfileRole) = _profiles.update { it.add(name, role) }
-
-    fun selectProfile(id: String) = _profiles.update { it.select(id) }
 
     // History
 

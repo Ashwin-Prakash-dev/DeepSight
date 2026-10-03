@@ -39,11 +39,18 @@ android {
     }
 }
 
-/** Copies <repo>/ml/packs, without golden test data, to packs/ in the APK assets, where PackLoader looks. */
+/**
+ * Copies <repo>/ml/packs, without golden test data, to packs/ in the APK assets, where PackLoader looks, and the
+ * trained router's model, labels and metadata from <repo>/ml/router to router/, where RouterModel looks.
+ */
 abstract class StagePacks : DefaultTask() {
     @get:InputDirectory
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val packs: DirectoryProperty
+
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val router: DirectoryProperty
 
     @get:OutputDirectory
     abstract val output: DirectoryProperty
@@ -62,6 +69,10 @@ abstract class StagePacks : DefaultTask() {
                     into("packs/${pack.name}")
                 }
             }
+            from(router) {
+                include("router.onnx", "labels.json", "router_meta.json")
+                into("router")
+            }
             into(output)
         }
     }
@@ -69,6 +80,7 @@ abstract class StagePacks : DefaultTask() {
 
 val stagePacks = tasks.register<StagePacks>("stagePacks") {
     packs.set(rootDir.resolve("../ml/packs"))
+    router.set(rootDir.resolve("../ml/router"))
     output.set(layout.buildDirectory.dir("generated/packAssets"))
 }
 

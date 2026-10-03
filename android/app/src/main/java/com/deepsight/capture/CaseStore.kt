@@ -25,4 +25,9 @@ class CaseStore(private val root: File) {
     /** Copies bytes as-is: no re-encode, so the quality gate sees the original pixels. */
     fun import(caseId: String, input: InputStream, ext: String): File =
         nextFile(caseId, ext).also { f -> input.use { i -> f.outputStream().use { i.copyTo(it) } } }
+
+    /** Removes the directory and every field in it. */
+    fun delete(caseId: String) {
+        File(root, caseId).deleteRecursively()
+    }
 }

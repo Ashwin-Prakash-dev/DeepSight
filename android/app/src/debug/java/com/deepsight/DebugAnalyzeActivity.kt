@@ -39,9 +39,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.deepsight.engine.contract.FieldResult
 import com.deepsight.engine.contract.PackManifest
+import com.deepsight.engine.contract.RouterVerdict
 import com.deepsight.engine.pack.PackLoader
 import com.deepsight.engine.pipeline.CellFinders
 import com.deepsight.engine.pipeline.FieldPipeline
+import com.deepsight.engine.router.RouterModel
 import com.deepsight.ui.theme.DeepSightTheme
 import java.io.File
 import java.util.concurrent.Executors
@@ -54,6 +56,7 @@ import java.util.concurrent.Executors
 class DebugAnalyzeActivity : ComponentActivity() {
     private val worker = Executors.newSingleThreadExecutor()          // FieldPipeline is not thread-safe
     private var pipeline: FieldPipeline? = null
+    private var router: RouterModel? = null
     private var manifest: PackManifest? = null
 
     private var status by mutableStateOf("Loading $PACK_ID...")
@@ -66,7 +69,10 @@ class DebugAnalyzeActivity : ComponentActivity() {
         enableEdgeToEdge()
         worker.execute {
             val loaded = runCatching {
-                PackLoader.fromAssets(assets).load(PACK_ID).let { it.manifest to FieldPipeline(it, cellFinder = CellFinders.forPack(it)) }
+                val routerModel = RouterModel.fromAssets(assets).also { router = it }
+                PackLoader.fromAssets(assets).load(PACK_ID).let {
+                    it.manifest to FieldPipeline(it, cellFinder = CellFinders.forPack(it), routerGuard = routerModel.guardFor(it.manifest.id))
+                }
             }
             runOnUiThread {
                 loaded.onSuccess { (m, p) ->
@@ -153,7 +159,9 @@ class DebugAnalyzeActivity : ComponentActivity() {
             "Pack: ${m.id} ${m.version}, $width x $height px",
             "Quality: ${if (q.pass) "pass" else "REJECTED ${q.reasons}"} (blur %.1f, clipped %.2f)".format(q.blurScore, q.exposureScore),
         )
-        if (q.pass) {
+        val router = field.router
+        if (router != null) text += "Router: ${router.verdict} %.3f".format(router.score) + (router.predicted?.let { ", looks like $it" } ?: "")
+        if (q.pass && router?.verdict == RouterVerdict.MATCH) {
             val cells = field.objects.size
             val parasitized = field.counts["parasitized"] ?: 0
             val high = field.objects.count { it.label == "parasitized" && it.score > 0.8 }
@@ -190,7 +198,7 @@ class DebugAnalyzeActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        worker.execute { pipeline?.close() }
+        worker.execute { pipeline?.close(); router?.close() }
         worker.shutdown()
         super.onDestroy()
     }

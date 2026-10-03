@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.util.Log
+import com.deepsight.batch.RoutedImage
 import com.deepsight.capture.FieldImage
 import com.deepsight.engine.contract.CaseResult
 import com.deepsight.engine.contract.FieldResult
@@ -13,6 +14,9 @@ import com.deepsight.engine.contract.PackManifest
 import com.deepsight.engine.pack.PackLoader
 import com.deepsight.engine.pipeline.CellFinders
 import com.deepsight.engine.pipeline.FieldPipeline
+import com.deepsight.engine.quality.PixelImage
+import com.deepsight.engine.router.AlwaysMatchRouterGuard
+import com.deepsight.engine.router.RouterModel
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -27,12 +31,23 @@ data class CaseRun(val fields: List<FieldResult>, val case: CaseResult, val anal
 
 /**
  * Runs a case through the real engine off the main thread. Keeps the last pack's [FieldPipeline], so its model loads
- * once across cases; picking another pack frees it first, so only one model is in memory.
+ * once across cases; picking another pack frees it first, so only one pack model is in memory.
+ * [routerFactory] gives the trained router (ml/router), loaded on the first run and kept for every pack; null keeps
+ * the always-match stub (tests on packs the router does not know).
  */
-class CaseRunner(private val loader: PackLoader, private val clock: () -> Long = System::currentTimeMillis) {
+class CaseRunner(
+    private val loader: PackLoader,
+    private val routerFactory: (() -> RouterModel)? = null,
+    private val clock: () -> Long = System::currentTimeMillis,
+) {
     private val lock = Mutex() // FieldPipeline is not thread-safe
     private var catalog: List<PackManifest>? = null
     private var current: Pair<String, FieldPipeline>? = null
+    // A failed load is not cached: the next run tries again, and the error shows on the case screen.
+    private val router by lazy { routerFactory?.invoke() }
+    // Batch upload sorts with its own copy, so sorting doesn't wait behind a running batch (one more 45 MB model).
+    private val sortLock = Mutex()
+    private val sortingRouter by lazy { routerFactory?.invoke() }
 
     /** How many times a pack was loaded; for tests. */
     var loads = 0
@@ -67,6 +82,24 @@ class CaseRunner(private val loader: PackLoader, private val clock: () -> Long =
         }
     }
 
+    /**
+     * Batch upload: the router's proposed test for each image (its best label: a pack id or "reject") and that
+     * label's probability. Same decode as a case run, on a router copy of its own behind [sortLock]: a router is not
+     * thread-safe, and sorting shouldn't wait for the batch the queue is running.
+     */
+    suspend fun route(files: List<File>, onProgress: (Int, Int) -> Unit = { _, _ -> }): List<RoutedImage> = sortLock.withLock {
+        withContext(Dispatchers.Default) {
+            val model = checkNotNull(sortingRouter) { "This build has no router" }
+            files.mapIndexed { i, file ->
+                onProgress(i + 1, files.size)
+                val bitmap = decode(file)
+                val probs = try { model.probabilities(pixelsOf(bitmap)) } finally { bitmap.recycle() }
+                val best = probs.indices.maxBy { probs[it] } // first of equal maxima, as ScoreRouterGuard picks
+                RoutedImage(file, model.labels[best], probs[best].toDouble())
+            }
+        }
+    }
+
     private fun pipeline(packId: String): FieldPipeline {
         current?.let { (id, pipeline) ->
             if (id == packId) return pipeline
@@ -74,8 +107,9 @@ class CaseRunner(private val loader: PackLoader, private val clock: () -> Long =
             // A model that never loaded throws again on close (FieldPipeline's lazy model); it must not block the next pack.
             runCatching { pipeline.close() }.onFailure { Log.w(TAG, "closing pack $id failed", it) }
         }
+        val routerGuard = router?.guardFor(packId) ?: AlwaysMatchRouterGuard
         val pack = loader.load(packId).also { loads++ }
-        return FieldPipeline(pack, cellFinder = CellFinders.forPack(pack)).also { current = packId to it }
+        return FieldPipeline(pack, cellFinder = CellFinders.forPack(pack), routerGuard = routerGuard).also { current = packId to it }
     }
 
     companion object {
@@ -85,7 +119,15 @@ class CaseRunner(private val loader: PackLoader, private val clock: () -> Long =
 
         /** ponytail: one runner per process and its pipeline is never closed; it lives until the process dies. */
         fun get(context: Context): CaseRunner = instance ?: synchronized(this) {
-            instance ?: CaseRunner(PackLoader.fromAssets(context.applicationContext.assets)).also { instance = it }
+            instance ?: context.applicationContext.assets.let { assets ->
+                CaseRunner(PackLoader.fromAssets(assets), routerFactory = { RouterModel.fromAssets(assets) }).also { instance = it }
+            }
+        }
+
+        private fun pixelsOf(bitmap: Bitmap): PixelImage {
+            val argb = IntArray(bitmap.width * bitmap.height)
+            bitmap.getPixels(argb, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            return PixelImage(bitmap.width, bitmap.height, argb)
         }
 
         /** Full resolution, then the EXIF rotation, as cv2.imread does in the Python reference (DebugAnalyzeActivity too). */

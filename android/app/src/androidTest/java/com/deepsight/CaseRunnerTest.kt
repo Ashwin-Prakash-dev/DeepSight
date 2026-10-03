@@ -1,10 +1,14 @@
 package com.deepsight
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.deepsight.capture.CaseStore
+import com.deepsight.engine.contract.Contracts
+import com.deepsight.engine.contract.RouterVerdict
 import com.deepsight.engine.pack.PackLoader
+import com.deepsight.engine.router.RouterModel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -65,6 +69,40 @@ class CaseRunnerTest {
         assertEquals(null, BitmapFactory.decodeFile(bad.path))
         val error = runCatching { runner.run("smoke", "c1", store.fields("c1")) }.exceptionOrNull()
         assertTrue(error?.message.orEmpty(), error?.message.orEmpty().contains(bad.name))
+    }
+
+    /** The shipped router and malaria pack, as the app runs them: a photo of noise never reaches the pack model. */
+    @Test
+    fun shippedRouterRejectsAFieldThatIsNotASlide() = runBlocking {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val shipped = CaseRunner(PackLoader.fromAssets(app.assets), routerFactory = { RouterModel.fromAssets(app.assets) })
+        val random = java.util.Random(7)
+        val noise = Bitmap.createBitmap(IntArray(400 * 300) { 0xff000000.toInt() or random.nextInt(0x1000000) }, 400, 300, Bitmap.Config.ARGB_8888)
+        store.nextFile("r1", "png").outputStream().use { noise.compress(Bitmap.CompressFormat.PNG, 100, it) }
+
+        val (fields, case) = shipped.run("malaria_thin", "r1", store.fields("r1"))
+
+        assertTrue(fields.single().quality.pass)
+        assertEquals(RouterVerdict.REJECT, fields.single().router?.verdict)
+        assertTrue("pack model ran after a reject: ${fields.single().timingMs}", "pack" !in fields.single().timingMs)
+        assertEquals(Contracts.RULE_ROUTER_REJECT, case.triage.ruleId)
+    }
+
+    /** Batch upload asks the shipped router which test each image is for; noise is for none. */
+    @Test
+    fun shippedRouterSortsAnUploadedImage() = runBlocking {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val shipped = CaseRunner(PackLoader.fromAssets(app.assets), routerFactory = { RouterModel.fromAssets(app.assets) })
+        val random = java.util.Random(11)
+        val noise = Bitmap.createBitmap(IntArray(400 * 300) { 0xff000000.toInt() or random.nextInt(0x1000000) }, 400, 300, Bitmap.Config.ARGB_8888)
+        val file = File(root, "upload.png").apply { parentFile?.mkdirs(); outputStream().use { noise.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+        val progress = mutableListOf<Int>()
+
+        val routed = shipped.route(listOf(file)) { done, _ -> progress += done }.single()
+
+        assertEquals("reject", routed.label)
+        assertTrue("score ${routed.score}", routed.score > 0.5)
+        assertEquals(listOf(1), progress)
     }
 
     @Test

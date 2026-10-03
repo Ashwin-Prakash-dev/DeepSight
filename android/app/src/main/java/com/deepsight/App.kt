@@ -29,7 +29,6 @@ import com.deepsight.home.HomeScreen
 import com.deepsight.profiles.ProfilesScreen
 import com.deepsight.profiles.NewPatientScreen
 import com.deepsight.profiles.PatientScreen
-import com.deepsight.profile.ProfileScreen
 import com.deepsight.result.ResultScreen
 import com.deepsight.ui.DeepSightIcons
 import com.deepsight.ui.components.DeepSightTopBar
@@ -37,7 +36,8 @@ import com.deepsight.ui.components.DisclaimerBar
 
 /**
  * Three tabs, each with its own back stack ([NavState]): Batch, Single (home → patient → case → result and sign-off →
- * history; the patient list) and Profile (the phone's users, about and the licences). State lives in [AppViewModel].
+ * history; about and the licences) and Profile (every patient profile and their tests; the only place they are listed).
+ * State lives in [AppViewModel].
  */
 @Composable
 fun DeepSightApp(vm: AppViewModel) {
@@ -107,7 +107,6 @@ private fun title(route: Route): String = when (route) {
     Route.History -> "History"
     is Route.SavedCase -> "Signed-off case"
     Route.About -> "About"
-    Route.Profiles -> "Patients"
     Route.PickPatient -> "Choose patient"
     is Route.Patient -> "Patient"
     Route.NewPatient -> "New patient"
@@ -119,21 +118,24 @@ private fun Screen(route: Route, vm: AppViewModel) {
     when (route) {
         Route.Batch -> {
             val batches by vm.batches.collectAsStateWithLifecycle()
-            BatchScreen(batches, onOpen = vm::openBatch, onUseSingle = { vm.selectTab(Tab.SINGLE) })
+            val upload by vm.upload.collectAsStateWithLifecycle()
+            val patients by vm.patients.collectAsStateWithLifecycle()
+            val patientUid by vm.uploadPatient.collectAsStateWithLifecycle()
+            BatchScreen(
+                batches, onOpen = vm::openBatch, onUseSingle = { vm.selectTab(Tab.SINGLE) },
+                upload = upload, patients = patients, patientUid = patientUid,
+                onPickImages = vm::uploadImages, onPatient = vm::chooseUploadPatient, onSubmit = vm::submitUpload, onDiscard = vm::discardUpload,
+            )
         }
         Route.Profile -> {
-            val profiles by vm.profiles.collectAsStateWithLifecycle()
-            ProfileScreen(profiles, onAdd = vm::addProfile, onSelect = vm::selectProfile, onAbout = { vm.open(Route.About) })
+            val patients by vm.patients.collectAsStateWithLifecycle()
+            ProfilesScreen(patients, onSelect = { vm.open(Route.Patient(it.id)) })
         }
         Route.Home -> {
             val packs by vm.packs.collectAsStateWithLifecycle()
             val ai by vm.aiStatus.collectAsStateWithLifecycle()
             val history by vm.history.collectAsStateWithLifecycle()
-            val patients by vm.patients.collectAsStateWithLifecycle()
-            HomeScreen(
-                packs, ai, history.size, patients.size,
-                onPick = vm::startCase, onHistory = { vm.open(Route.History) }, onProfiles = { vm.open(Route.Profiles) },
-            )
+            HomeScreen(packs, ai, history.size, onPick = vm::startCase, onHistory = { vm.open(Route.History) })
         }
         Route.Case -> {
             val case by vm.case.collectAsStateWithLifecycle()
@@ -159,10 +161,6 @@ private fun Screen(route: Route, vm: AppViewModel) {
         is Route.SavedCase -> {
             val saved by vm.saved.collectAsStateWithLifecycle()
             SavedCaseScreen(saved?.takeIf { it.case.caseId == route.caseId })
-        }
-        Route.Profiles -> {
-            val patients by vm.patients.collectAsStateWithLifecycle()
-            ProfilesScreen(patients, onSelect = { vm.open(Route.Patient(it.id)) })
         }
         Route.PickPatient -> {
             val patients by vm.patients.collectAsStateWithLifecycle()

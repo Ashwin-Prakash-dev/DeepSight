@@ -1,0 +1,127 @@
+{
+  "downloads": [
+    {
+      "url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/NIH-NLM-ThinBloodSmearsPf/NIH-NLM-ThinBloodSmearsPf.zip",
+      "final_url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/NIH-NLM-ThinBloodSmearsPf/NIH-NLM-ThinBloodSmearsPf.zip",
+      "bytes": 690355704,
+      "ranges": true,
+      "etag": "\"49d4838ec8e392e35cfdfefe54d63cd5-42\"",
+      "modified": "Wed, 28 Aug 2024 19:29:05 GMT",
+      "sha256": "3d86af70b3a80d7ecdcc07f8fee0d0d9c9c197cccd907e239abb92c0357c3ea9"
+    },
+    {
+      "url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/NIH-NLM-ThinBloodSmearsPf/Data%20License%20Agreement.docx",
+      "final_url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/NIH-NLM-ThinBloodSmearsPf/Data%20License%20Agreement.docx",
+      "bytes": 22625,
+      "ranges": true,
+      "etag": "\"62999c21d8b52603af10510e145d5a69\"",
+      "modified": "Wed, 28 Aug 2024 19:29:01 GMT",
+      "sha256": "e7617a7206967e1806ba335f8b986880c959fbb4d81295dc71049c8639d4b86f"
+    },
+    {
+      "url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/Thick_Smears_150/ThickBloodSmears_150.zip",
+      "final_url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/Thick_Smears_150/ThickBloodSmears_150.zip",
+      "bytes": 3923792228,
+      "ranges": true,
+      "etag": "\"217e177ee3041cf07ca28896dd0ecc05-234\"",
+      "modified": "Wed, 28 Aug 2024 19:03:07 GMT",
+      "sha256": "520d1e5360ea78518af5f089bb1f962b5e903a962b040f51ffae6e02a4ebcfe5"
+    },
+    {
+      "url": "https://archive.ics.uci.edu/static/public/773/defungi.zip",
+      "final_url": "https://archive.ics.uci.edu/static/public/773/defungi.zip",
+      "bytes": 156341364,
+      "ranges": false,
+      "etag": null,
+      "modified": null,
+      "declared_bytes": null,
+      "validation": "zip_crc",
+      "sha256": "02020311d1f8207f3aa3bf8b2303a5106463ac0bf35adde4ae042e8b2716ff6c"
+    },
+    {
+      "url": "http://www.inf.ufpr.br/vri/databases/BreaKHis_v1.tar.gz",
+      "final_url": "https://www.inf.ufpr.br/vri/databases/BreaKHis_v1.tar.gz",
+      "bytes": 4273561758,
+      "ranges": true,
+      "etag": "\"582dd41a-feb9609e\"",
+      "modified": "Thu, 17 Nov 2016 16:00:26 GMT",
+      "sha256": "d118014cf8a58f6d1fc4571e55efb523c932c85cfba2fb05627e455fc40bd640"
+    },
+    {
+      "url": "kaggle:mehradaria/leukemia",
+      "bytes": 116506002,
+      "verification": "whole dataset via kagglehub (Colab cache mount or HTTP); selected files checked against listing sizes"
+    },
+    {
+      "url": "kaggle:andrewmvd/leukemia-classification",
+      "bytes": 10415946876,
+      "verification": "whole dataset via kagglehub (Colab cache mount or HTTP); selected files checked against listing sizes"
+    },
+    {
+      "url": "https://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz",
+      "final_url": "https://thor.robots.ox.ac.uk/pets/images.tar.gz",
+      "bytes": 791918971,
+      "ranges": false,
+      "etag": "\"62e39dec-2f33b97b\"",
+      "modified": "Fri, 29 Jul 2022 08:44:28 GMT",
+      "sha256": "67195c5e1c01f1ab5f9b6a5d22b8c27a580d896ece458917e61d459337fa318d"
+    },
+    {
+      "url": "https://www.robots.ox.ac.uk/~vgg/data/flowers/102/102flowers.tgz",
+      "final_url": "https://thor.robots.ox.ac.uk/flowers/102/102flowers.tgz",
+      "bytes": 344862509,
+      "ranges": true,
+      "etag": "\"499eeeca-148e2f2d\"",
+      "modified": "Fri, 20 Feb 2009 17:56:26 GMT",
+      "sha256": "2d01ecc807db462958cfe3d92f57a8c252b4abd240eb955770201e45f783b246"
+    },
+    {
+      "url": "https://www.robots.ox.ac.uk/~vgg/data/dtd/download/dtd-r1.0.1.tar.gz",
+      "final_url": "https://thor.robots.ox.ac.uk/dtd/dtd-r1.0.1.tar.gz",
+      "bytes": 625239812,
+      "ranges": true,
+      "etag": "\"5491ba80-25446704\"",
+      "modified": "Wed, 17 Dec 2014 17:16:48 GMT",
+      "sha256": "e42855a52a4950a3b59612834602aa253914755c95b0cff9ead6d07395f8e205"
+    },
+    {
+      "url": "https://zenodo.org/records/53169/files/Kather_texture_2016_image_tiles_5000.zip?download=1",
+      "final_url": "https://zenodo.org/records/53169/files/Kather_texture_2016_image_tiles_5000.zip?download=1",
+      "bytes": 258098431,
+      "ranges": true,
+      "etag": null,
+      "modified": null,
+      "sha256": "936d0b95ae0f04f1f7b18a2b7e8c55776c3e887d102f645bcee752d1a6626a32"
+    }
+  ],
+  "events": [
+    "OPTIONAL BACH NOT ACQUIRED: RuntimeError: BACH: no microscopy TIFF members; refusing WSI fallback",
+    "OPTIONAL BACH NOT ACQUIRED: RuntimeError: BACH: no microscopy TIFF members; refusing WSI fallback"
+  ],
+  "duplicate_groups": [
+    [
+      "breakhis",
+      "SOB_M_DC-14-13412"
+    ],
+    [
+      "breakhis",
+      "SOB_M_LC-14-13412"
+    ],
+    [
+      "taleqani",
+      "Original/Pro/WBC-Malignant-Pro-106.jpg"
+    ],
+    [
+      "taleqani",
+      "Original/Pro/WBC-Malignant-Pro-107.jpg"
+    ],
+    [
+      "taleqani",
+      "Original/Pro/WBC-Malignant-Pro-142.jpg"
+    ],
+    [
+      "taleqani",
+      "Original/Pro/WBC-Malignant-Pro-143.jpg"
+    ]
+  ]
+}

@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "classes": [
+    "malaria",
+    "fungal",
+    "leukaemia",
+    "breast_cancer",
+    "reject"
+  ],
+  "labels": [
+    "malaria_thin",
+    "fungal",
+    "leukaemia_wbc",
+    "breast_breakhis",
+    "reject"
+  ],
+  "input": {
+    "name": "input",
+    "layout": "NCHW",
+    "dtype": "float32",
+    "shape": [
+      "N",
+      3,
+      224,
+      224
+    ],
+    "range": [
+      0,
+      1
+    ]
+  },
+  "outputs": [
+    "probs",
+    "emb",
+    "maha_percentile"
+  ],
+  "backbone": "resnet18",
+  "embedding_dimension": 512,
+  "normalization": {
+    "baked_in": true,
+    "mean": [
+      0.48500001430511475,
+      0.4560000002384186,
+      0.4059999883174896
+    ],
+    "std": [
+      0.2290000021457672,
+      0.2240000069141388,
+      0.22499999403953552
+    ]
+  },
+  "resize_rule": {
+    "exif_orientation": true,
+    "color": "RGB",
+    "short_side": 256,
+    "long_side": "floor(original_long * short_side / original_short)",
+    "interpolation": "Pillow bilinear reference; Android implementation must be golden-tested",
+    "crop": "center crop S x S; floor((resized_dimension-S)/2) offsets",
+    "jpeg_recompression": false
+  },
+  "temperature": 0.9298247488599112,
+  "suggested_thresholds": {
+    "enabled": true,
+    "probability": 0.5,
+    "margin": 0.0,
+    "provisional": true,
+    "provenance": "Maximum grouped-validation coverage meeting engineering precision/sample target; no test data used.",
+    "validation": {
+      "probability": 0.5,
+      "margin": 0.0,
+      "accepted": 630,
+      "coverage": 0.5645161290322581,
+      "accuracy": 0.9904761904761905,
+      "disease_coverage": 0.9968051118210862,
+      "reject_false_accept": 0.012244897959183673
+    }
+  },
+  "mahalanobis": {
+    "enabled": true,
+    "definition": "nearest disease mean, squared distance, tied LedoitWolf covariance",
+    "calibration": "piecewise-linear percentiles of disease validation distances; range 0..100, higher is farther",
+    "rejection_threshold": null,
+    "provisional": true
+  },
+  "policy": {
+    "proposes_only": true,
+    "user_confirmation_required": true,
+    "normal_screen_requires_router_match": true
+  },
+  "sources": [
+    {
+      "name": "nlm_thin",
+      "class": "malaria",
+      "licence": "NLM Data License Agreement; read downloaded document",
+      "url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/NIH-NLM-ThinBloodSmearsPf/NIH-NLM-ThinBloodSmearsPf.zip",
+      "grouping": "nlm_thin",
+      "archive_sha256": "3d86af70b3a80d7ecdcc07f8fee0d0d9c9c197cccd907e239abb92c0357c3ea9",
+      "count": 600,
+      "groups": 193
+    },
+    {
+      "name": "nlm_thick_pf",
+      "class": "malaria",
+      "licence": "NLM terms; exact thick-source reuse terms UNVERIFIED",
+      "url": "https://data.lhncbc.nlm.nih.gov/public/Malaria/Thick_Smears_150/ThickBloodSmears_150.zip",
+      "grouping": "nlm_thick_pf",
+      "archive_sha256": "520d1e5360ea78518af5f089bb1f962b5e903a962b040f51ffae6e02a4ebcfe5",
+      "count": 600,
+      "groups": 150
+    },
+    {
+      "name": "defungi",
+      "class": "fungal",
+      "licence": "CC BY 4.0; UCI 773",
+      "url": "https://archive.ics.uci.edu/static/public/773/defungi.zip",
+      "grouping": "defungi",
+      "archive_sha256": "02020311d1f8207f3aa3bf8b2303a5106463ac0bf35adde4ae042e8b2716ff6c",
+      "count": 600,
+      "groups": 416
+    },
+    {
+      "name": "breakhis",
+      "class": "breast_cancer",
+      "licence": "Non-commercial research wording; applicable redistribution terms UNVERIFIED",
+      "url": "http://www.inf.ufpr.br/vri/databases/BreaKHis_v1.tar.gz",
+      "grouping": "breakhis",
+      "archive_sha256": "d118014cf8a58f6d1fc4571e55efb523c932c85cfba2fb05627e455fc40bd640",
+      "count": 400,
+      "groups": 80
+    },
+    {
+      "name": "taleqani",
+      "class": "leukaemia",
+      "licence": "UNVERIFIED",
+      "url": "https://www.kaggle.com/datasets/mehradaria/leukemia",
+      "grouping": "taleqani",
+      "count": 596,
+      "groups": 596
+    },
+    {
+      "name": "cnmc",
+      "class": "leukaemia",
+      "licence": "UNVERIFIED",
+      "url": "https://www.kaggle.com/datasets/andrewmvd/leukemia-classification",
+      "grouping": "cnmc",
+      "count": 365,
+      "groups": 73
+    },
+    {
+      "name": "pets",
+      "class": "reject",
+      "licence": "UNVERIFIED: review original dataset terms linked by torchvision",
+      "url": "https://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz",
+      "grouping": "pets",
+      "archive_sha256": "67195c5e1c01f1ab5f9b6a5d22b8c27a580d896ece458917e61d459337fa318d",
+      "count": 600,
+      "groups": 600
+    },
+    {
+      "name": "flowers",
+      "class": "reject",
+      "licence": "UNVERIFIED: review original dataset terms linked by torchvision",
+      "url": "https://www.robots.ox.ac.uk/~vgg/data/flowers/102/102flowers.tgz",
+      "grouping": "flowers",
+      "archive_sha256": "2d01ecc807db462958cfe3d92f57a8c252b4abd240eb955770201e45f783b246",
+      "count": 600,
+      "groups": 600
+    },
+    {
+      "name": "dtd",
+      "class": "reject",
+      "licence": "UNVERIFIED: review original dataset terms linked by torchvision",
+      "url": "https://www.robots.ox.ac.uk/~vgg/data/dtd/download/dtd-r1.0.1.tar.gz",
+      "grouping": "dtd",
+      "archive_sha256": "e42855a52a4950a3b59612834602aa253914755c95b0cff9ead6d07395f8e205",
+      "count": 600,
+      "groups": 600
+    },
+    {
+      "name": "kather",
+      "class": "reject",
+      "licence": "CC BY 4.0 per Zenodo description; grouping needs audit",
+      "url": "https://zenodo.org/records/53169/files/Kather_texture_2016_image_tiles_5000.zip?download=1",
+      "grouping": "kather",
+      "archive_sha256": "936d0b95ae0f04f1f7b18a2b7e8c55776c3e887d102f645bcee752d1a6626a32",
+      "count": 50,
+      "groups": 10
+    },
+    {
+      "name": "synthetic",
+      "class": "reject",
+      "licence": "Generated by this notebook; no external dataset",
+      "url": "procedural generation in notebook",
+      "grouping": "base seed",
+      "count": 600,
+      "groups": 600
+    }
+  ],
+  "training_date": "2026-10-03T05:46:10.380060+00:00",
+  "libraries": {
+    "torch": "2.11.0+cu130",
+    "torchvision": "0.26.0+cu130",
+    "numpy": "2.1.3",
+    "pandas": "2.2.3",
+    "onnx": "1.23.1",
+    "onnxruntime": "1.30.0",
+    "scikit-learn": "1.6.1",
+    "pillow": "11.3.0",
+    "remotezip": "0.12.6",
+    "kagglehub": "1.0.2",
+    "kaggle": "2.0.2",
+    "requests": "2.32.4"
+  },
+  "config": {
+    "root": "/content/deepsight_router",
+    "image_size": 224,
+    "backbone": "resnet18",
+    "cache_short": 256,
+    "cache_quality": 95,
+    "batch_size": 32,
+    "workers": 2,
+    "probe_epochs": 1,
+    "finetune_epochs": 3,
+    "probe_lr": 0.001,
+    "finetune_lr": 0.0001,
+    "weight_decay": 0.0001,
+    "label_smoothing": 0.0,
+    "val_fraction": 0.2,
+    "test_fraction": 0.2,
+    "max_images_per_source": 600,
+    "max_images_per_group": 5,
+    "max_download_gib": 12,
+    "total_download_gib": 30,
+    "max_extracted_gib": 8,
+    "disk_reserve_gib": 3,
+    "retries": 3,
+    "enable_mahalanobis": true,
+    "routing_accuracy_target": 0.95,
+    "minimum_accepted": 10,
+    "try_bach": true,
+    "enable_pv": false,
+    "enable_uninfected": false,
+    "require_gpu": true,
+    "mount_drive": false,
+    "download_zip": true,
+    "interactive": false,
+    "image_group_fallback": [
+      "taleqani",
+      "bach",
+      "breast_second"
+    ],
+    "drop_ungrouped": [
+      "cnmc"
+    ],
+    "require_two_sources": false
+  },
+  "seed": 1729,
+  "model_sha256": "bdfc1becd7491ef96e689d412412c676f10b153defbf6e017a1364e78fd3ac0f",
+  "unverified": [
+    "Physical Android CPU/XNNPACK execution and pixel-preprocessing parity have not been measured here.",
+    "Clinical routing thresholds and performance on unseen patients/devices are unverified.",
+    "Filename grouping for DeFungi and inferred slide IDs needs dataset-owner confirmation.",
+    "Exact and decoded-pixel hashes cannot identify all near-duplicates or shared patients across datasets.",
+    "Dataset-derived model redistribution and several source licences require review.",
+    "Source-held-out evaluation measures the selected sources only; fungal has one lab source.",
+    "Patch/field, magnification, staining and acquisition fingerprints may persist after augmentation.",
+    "Colab download availability, resource sufficiency and installed-library compatibility are checked at runtime, not guaranteed.",
+    "Literature details beyond the supplied reading/abstracts are unverified; this is not a benchmark reproduction.",
+    "https://archive.ics.uci.edu/static/public/773/defungi.zip: Content-Length unavailable; remote size UNVERIFIED. Bounded streaming plus full ZIP CRC validation used; SHA256 records this local copy, not publisher authenticity.",
+    "OPTIONAL BACH NOT ACQUIRED: RuntimeError: BACH: no microscopy TIFF members; refusing WSI fallback",
+    "OPTIONAL BACH NOT ACQUIRED: RuntimeError: BACH: no microscopy TIFF members; refusing WSI fallback; LOCAL[\"breast_second\"] not set, so breast_cancer has a single source (BreakHis).",
+    "taleqani: 3256 files in a \"Segmented\" folder skipped as derived copies (layout inferred; check the dataset card).",
+    "taleqani: no patient IDs; each image is its own group, so one patient can sit on both sides of a split (leakage risk).",
+    "taleqani: Kaggle selected files checked against listing sizes; Content-Length enforcement inside kagglehub and dataset licence remain subject to installed API/source audit.",
+    "cnmc: 4453 files without a patient ID in their name dropped (e.g. ['C-NMC_Leukemia/testing_data/C-NMC_test_final_phase_data/1.bmp', 'C-NMC_Leukemia/testing_data/C-NMC_test_final_phase_data/10.bmp', 'C-NMC_Leukemia/testing_data/C-NMC_test_final_phase_data/100.bmp']).",
+    "cnmc: Kaggle selected files checked against listing sizes; Content-Length enforcement inside kagglehub and dataset licence remain subject to installed API/source audit.",
+    "pets: photograph identity/grouping and redistribution terms require source review.",
+    "flowers: photograph identity/grouping and redistribution terms require source review.",
+    "dtd: photograph identity/grouping and redistribution terms require source review.",
+    "breast_cancer: 1 acquisition source(s); diagnostic A cannot test it on an unseen source and source fingerprints are more likely."
+  ]
+}

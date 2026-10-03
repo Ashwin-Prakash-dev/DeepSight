@@ -4,7 +4,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -30,9 +29,9 @@ class BottomNavTest {
 
         // Single keeps History open while another tab is shown; tapping Single again goes back to its first screen.
         rule.onNodeWithText("Single").performClick()
-        rule.onNodeWithText("History").performScrollTo().performClick() // below the Profiles card
+        rule.onNodeWithText("History").performScrollTo().performClick() // below the test packs
         rule.onNodeWithText("Profile").performClick()
-        rule.onNodeWithText("Profiles").assertExists()
+        rule.onNodeWithText("Search by name or ID").assertExists()
         rule.onNodeWithText("Single").performClick()
         rule.onNodeWithText("Choose test").assertDoesNotExist()
         rule.onNodeWithText("Single").performClick()
@@ -47,16 +46,13 @@ class BottomNavTest {
         rule.onNodeWithText("Choose test").assertExists()
     }
 
+    /** The Profile tab holds patient profiles, not the phone's staff (clinicians, health workers). */
     @Test
-    fun addedProfileBecomesActive() {
+    fun profileTabShowsPatientProfilesNotStaff() {
         rule.onNodeWithText("Profile").performClick()
-        rule.onNodeWithText("No profile selected").assertExists()
-        rule.onNodeWithText("Add profile").performClick()
-        rule.onNodeWithText("Name").performTextInput("Asha Kumar")
-        rule.onNodeWithText("Clinician").performClick()
-        rule.onNodeWithText("Add").performClick()
-
+        rule.onNodeWithText("Search by name or ID").assertExists()
+        rule.onNodeWithText("profiles", substring = true).assertExists() // "N profiles"
+        rule.onNodeWithText("Add profile").assertDoesNotExist()
         rule.onNodeWithText("No profile selected").assertDoesNotExist()
-        rule.onNodeWithText("AK").assertExists()
     }
 }

@@ -1,0 +1,14 @@
+path,class,source,group,predicted,top_probability,p_reject,margin
+/content/deepsight_router/raw/nlm_thin/Point Set/336C153P114ThinF/Img/IMG_20151115_135832.jpg,malaria,nlm_thin,336C153P114ThinF,reject,0.7651538689951224,0.7651538689951224,0.5322476671491025
+/content/deepsight_router/raw/breakhis/BreaKHis_v1/histology_slides/breast/malignant/SOB/papillary_carcinoma/SOB_M_PC_15-190EF/400X/SOB_M_PC-15-190EF-400-012.png,breast_cancer,breakhis,SOB_M_PC-15-190EF,reject,0.8853576372497021,0.8853576372497021,0.7707152865635799
+/content/deepsight_router/raw/breakhis/BreaKHis_v1/histology_slides/breast/malignant/SOB/papillary_carcinoma/SOB_M_PC_15-190EF/400X/SOB_M_PC-15-190EF-400-002.png,breast_cancer,breakhis,SOB_M_PC-15-190EF,reject,0.8779421262765229,0.8779421262765229,0.7558847803343537
+/content/deepsight_router/raw/flowers/jpg/image_07391.jpg,reject,flowers,image_07391,breast_cancer,0.866539156351971,0.13345873102601438,0.7330804253259566
+/content/deepsight_router/raw/dtd/dtd/images/flecked/flecked_0094.jpg,reject,dtd,flecked_0094,breast_cancer,0.9861024259004101,0.012604550043524112,0.973497875856886
+/content/deepsight_router/raw/dtd/dtd/images/stained/stained_0119.jpg,reject,dtd,stained_0119,fungal,0.999206463702414,0.0006921179484715118,0.9985143457539425
+/content/deepsight_router/raw/dtd/dtd/images/swirly/swirly_0125.jpg,reject,dtd,swirly_0125,breast_cancer,0.5376541097472483,0.4623351591460296,0.07531895060121868
+/content/deepsight_router/raw/dtd/dtd/images/crystalline/crystalline_0111.jpg,reject,dtd,crystalline_0111,breast_cancer,0.7776905299094878,0.2149325288587544,0.5627580010507334
+/content/deepsight_router/raw/dtd/dtd/images/stained/stained_0114.jpg,reject,dtd,stained_0114,fungal,0.9890649266490961,0.01071037574959596,0.9783545508995001
+/content/deepsight_router/raw/dtd/dtd/images/gauzy/gauzy_0143.jpg,reject,dtd,gauzy_0143,fungal,0.9964308194856603,0.003568565825550351,0.9928622536601099
+/content/deepsight_router/raw/dtd/dtd/images/stained/stained_0028.jpg,reject,dtd,stained_0028,fungal,0.9992903730359006,0.0007043805114472806,0.9985859925244533
+/content/deepsight_router/raw/dtd/dtd/images/blotchy/blotchy_0080.jpg,reject,dtd,blotchy_0080,breast_cancer,0.7939736305366493,0.20579881288875954,0.5881748176478897
+/content/deepsight_router/raw/dtd/dtd/images/wrinkled/wrinkled_0128.jpg,reject,dtd,wrinkled_0128,breast_cancer,0.6910774415832941,0.3058103471810057,0.3852670944022884
